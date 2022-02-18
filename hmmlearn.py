@@ -60,7 +60,7 @@ def main(train_file_path):
         if tag not in transition_prob:
             transition_prob[tag] = dict()
         for prev_tag in tags.keys():
-            transition_prob[tag][prev_tag] = tag_given_tag[tag + constant.GIVEN + prev_tag] # TODO: smoothing
+            transition_prob[tag][prev_tag] = max(1, tag_given_tag[tag + constant.GIVEN + prev_tag]) # TODO: smoothing
     for tag in list(tags.keys())+[constant.TAG_END]:
         total = sum(list(transition_prob[tag].values()))
         for prev_tag in tags.keys():

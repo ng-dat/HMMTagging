@@ -43,7 +43,7 @@ class HMM:
         Delta = np.zeros([tag_num, input_len])
         NEG_INFI = np.log(1e-9)#np.float('-inf')
         for t in range(tag_num):
-            if self.prior_prob[tags[t]] == 0 or self.emiss_prob[obs_seq[0]][tags[t]] == 0:
+            if self.prior_prob[tags[t]] == 0 or obs_seq[0] not in self.obs_dict or self.emiss_prob[obs_seq[0]][tags[t]] == 0:
                 delta[t][0] = NEG_INFI # TODO: smoothing
             else:
                 delta[t][0] = np.log(self.prior_prob[tags[t]]) + np.log(self.emiss_prob[obs_seq[0]][tags[t]])
@@ -56,13 +56,14 @@ class HMM:
                 for prev_t in range(tag_num):
                     # if delta[prev_t][i-1] < 0:
                     #     continue # TODO: handle this case (when?)
-                    if self.trans_prob[tags[t]][tags[prev_t]] == 0:
-                        cur_prob = np.log(1e-9) + delta[prev_t][i-1] # TODO: handle non-exist transition
-                    else:
-                        cur_prob = np.log(self.trans_prob[tags[t]][tags[prev_t]]) + delta[prev_t][i-1]
+                    # if self.trans_prob[tags[t]][tags[prev_t]] == 0:
+                    #     cur_prob = np.log(1e-9) + delta[prev_t][i-1] # TODO: handle non-exist transition
+                    # else:
+                    #     cur_prob = np.log(self.trans_prob[tags[t]][tags[prev_t]]) + delta[prev_t][i-1]
+                    cur_prob = np.log(self.trans_prob[tags[t]][tags[prev_t]]) + delta[prev_t][i - 1]
                     if delta[t][i] <= cur_prob:
-                        delta[t][i] = cur_prob
-                        Delta[t][i] = prev_t
+                            delta[t][i] = cur_prob
+                            Delta[t][i] = prev_t
                 delta[t][i] += emiss_prob
 
         most_likely_path = [np.argmax([delta[last_tag][input_len-1] + \
