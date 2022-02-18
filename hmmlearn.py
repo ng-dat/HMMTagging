@@ -37,7 +37,7 @@ def main(train_file_path):
                 continue
             for i in range(len(tag_line)-1):
                 tag_given_tag[tag_line[i+1]+constant.GIVEN+tag_line[i]] += 1
-            tag_given_tag[constant.TAG_END+constant.GIVEN+tag_line[0]] += 1
+            tag_given_tag[constant.TAG_END+constant.GIVEN+tag_line[-1]] += 1
 
     # Get probabilities
     # for x in words:
