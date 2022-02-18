@@ -11,6 +11,8 @@ def main(test_file_path):
     with open(test_file_path, 'r') as f:
         lines = f.read().split('\n')
         for line in lines:
+            if not line.strip():
+                continue
             words = [w.strip() for w in line.split(' ')]
             pred_tags = model.viterbi(words)
             # print(words)
@@ -21,7 +23,7 @@ def main(test_file_path):
 
     with open('hmmoutput.txt', 'w') as output_file:
         for sentence in outputs:
-            output_file.write(sentence+'\n')
+            output_file.write(sentence + '\n')
         output_file.close()
 
 

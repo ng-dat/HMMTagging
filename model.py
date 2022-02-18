@@ -41,33 +41,30 @@ class HMM:
         tag_num = len(tags)
         delta = np.zeros([tag_num, input_len])
         Delta = np.zeros([tag_num, input_len])
-        NEG_INFI = np.log(1e-9)#np.float('-inf')
-        for t in range(tag_num):
-            if self.prior_prob[tags[t]] == 0 or obs_seq[0] not in self.obs_dict or self.emiss_prob[obs_seq[0]][tags[t]] == 0:
-                delta[t][0] = NEG_INFI # TODO: smoothing
-            else:
-                delta[t][0] = np.log(self.prior_prob[tags[t]]) + np.log(self.emiss_prob[obs_seq[0]][tags[t]])
-        for i in range(1, input_len):
-            emiss_prob = NEG_INFI  # TODO: handle unknown words
-            for t in range(tag_num):
-                if obs_seq[i] in self.obs_dict and self.emiss_prob[obs_seq[i]][tags[t]] != 0:
-                    emiss_prob = np.log(self.emiss_prob[obs_seq[i]][tags[t]])
-                delta[t][i] = np.float('-inf')
-                for prev_t in range(tag_num):
-                    # if delta[prev_t][i-1] < 0:
-                    #     continue # TODO: handle this case (when?)
-                    # if self.trans_prob[tags[t]][tags[prev_t]] == 0:
-                    #     cur_prob = np.log(1e-9) + delta[prev_t][i-1] # TODO: handle non-exist transition
-                    # else:
-                    #     cur_prob = np.log(self.trans_prob[tags[t]][tags[prev_t]]) + delta[prev_t][i-1]
-                    cur_prob = np.log(self.trans_prob[tags[t]][tags[prev_t]]) + delta[prev_t][i - 1]
-                    if delta[t][i] <= cur_prob:
-                            delta[t][i] = cur_prob
-                            Delta[t][i] = prev_t
-                delta[t][i] += emiss_prob
 
-        most_likely_path = [np.argmax([delta[last_tag][input_len-1] + \
-                                       np.log(self.trans_prob[constant.TAG_END][tags[last_tag]]) for last_tag in range(tag_num)])]
+        for t in range(tag_num):
+            if obs_seq[0] not in self.obs_dict:
+                delta[t][0] = self.prior_prob[tags[t]]
+            else:
+                delta[t][0] = self.prior_prob[tags[t]] * self.emiss_prob[obs_seq[0]][tags[t]]
+        for i in range(1, input_len):
+            for t in range(tag_num):
+                if obs_seq[i] in self.obs_dict and self.emiss_prob[obs_seq[i]][tags[t]] == 0:
+                    delta[t][i] = 0
+                    continue
+
+                emiss_prob = 1  # TODO: handle unknown words
+                if obs_seq[i] in self.obs_dict:
+                    emiss_prob = self.emiss_prob[obs_seq[i]][tags[t]]
+
+                cur_prob = [self.trans_prob[tags[t]][tags[prev_t]] * delta[prev_t][i - 1] for prev_t in range(tag_num)]
+                delta[t][i] = np.max(cur_prob)
+                Delta[t][i] = np.argmax(cur_prob)
+
+                delta[t][i] *= emiss_prob
+
+        most_likely_path = [np.argmax([delta[last_tag][input_len-1] * \
+                                       self.trans_prob[constant.TAG_END][tags[last_tag]] for last_tag in range(tag_num)])]
         for i in range(input_len-1,0,-1):
             most_likely_path.append(int(Delta[most_likely_path[-1]][i]))
         most_likely_path.reverse()
