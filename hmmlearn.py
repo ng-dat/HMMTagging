@@ -66,9 +66,17 @@ def main(train_file_path):
         for prev_tag in tags.keys():
             transition_prob[tag][prev_tag] /= total
 
+    count_vocab = Counter()
+    for tag in tags.keys():
+        count_related_words = 0
+        for word in words.keys():
+            if emission_prob[word][tag] > 0: count_related_words += 1
+        count_vocab[tag] = count_related_words
+    common_tags = [x[0] for x in count_vocab.most_common(int(len(tags)/2))]
+
     # Setting up model
     model = HMM(prior_prob=tags, trans_prob=transition_prob, emiss_prob=emission_prob,
-                state_dict=set(tags.keys()), obs_dict=set(words.keys()))
+                state_dict=set(tags.keys()), obs_dict=set(words.keys()), open_class_dict=common_tags)
     model.save_model()
 
 
