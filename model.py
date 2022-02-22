@@ -45,37 +45,28 @@ class HMM:
         Delta = np.zeros([tag_num, input_len])
 
         for t in range(tag_num):
-            if obs_seq[0] not in self.obs_dict:
-                if len(self.open_class_dict) > 0:
-                    if tags[t] in self.open_class_dict:
-                        delta[t][0] = self.prior_prob[tags[t]]
-                    else:
-                        delta[t][0] = 0
-                else:
-                    delta[t][0] = self.prior_prob[tags[t]]
-            else:
-                delta[t][0] = self.prior_prob[tags[t]] * self.emiss_prob[obs_seq[0]][tags[t]]
+            delta[t][0] = self.prior_prob[tags[t]]
+            if obs_seq[0] in self.obs_dict:
+                delta[t][0] *= self.emiss_prob[obs_seq[0]][tags[t]]
+            elif len(self.open_class_dict) > 0 and tags[t] not in self.open_class_dict:
+                delta[t][0] *= 0.075
         for i in range(1, input_len):
             for t in range(tag_num):
                 if obs_seq[i] in self.obs_dict and self.emiss_prob[obs_seq[i]][tags[t]] == 0:
                     delta[t][i] = 0
                     continue
-                if len(self.open_class_dict) > 0 and \
-                        obs_seq[i] not in self.obs_dict and \
-                        tags[t] not in self.open_class_dict:
-                    # when Tag not in open-class
-                    delta[t][i] = 0
-                    continue
-
-                emiss_prob = 1  # TODO: handle unknown words
-                if obs_seq[i] in self.obs_dict:
-                    emiss_prob = self.emiss_prob[obs_seq[i]][tags[t]]
 
                 cur_prob = [self.trans_prob[tags[t]][tags[prev_t]] * delta[prev_t][i - 1] for prev_t in range(tag_num)]
                 delta[t][i] = np.max(cur_prob)
                 Delta[t][i] = np.argmax(cur_prob)
 
-                delta[t][i] *= emiss_prob
+                if obs_seq[i] in self.obs_dict:
+                    delta[t][i] *= self.emiss_prob[obs_seq[i]][tags[t]]
+                # TODO: handle unknown words
+                elif len(self.open_class_dict) > 0 and \
+                        tags[t] not in self.open_class_dict:
+                    # when Tag not in open-class
+                    delta[t][i] *= 0.075
 
         most_likely_path = [np.argmax([delta[last_tag][input_len-1] * \
                                        self.trans_prob[constant.TAG_END][tags[last_tag]] for last_tag in range(tag_num)])]
