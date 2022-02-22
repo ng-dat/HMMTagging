@@ -12,6 +12,7 @@ def main(train_file_path):
     tags = Counter()
     tag_given_tag = Counter()
     word_given_tag = Counter()
+    tag_initial = Counter()
     count_pair = 0
     count_line = 0
     with open(train_file_path, 'r') as f:
@@ -40,12 +41,14 @@ def main(train_file_path):
             for i in range(len(tag_line)-1):
                 tag_given_tag[tag_line[i+1]+constant.GIVEN+tag_line[i]] += 1
             tag_given_tag[constant.TAG_END+constant.GIVEN+tag_line[-1]] += 1
+            tag_initial[tag_line[0]] += 1
 
     # Get probabilities
     # for x in words:
     #     words[x] = words[x]/count #TODO: check if can using this
     for x in tags:
         tags[x] = tags[x]/count_pair
+        tag_initial[x] = tag_initial[x]/count_line
 
     emission_prob = dict()
     for word in words.keys():
@@ -81,8 +84,8 @@ def main(train_file_path):
     # open_class_tags = open_class_tags | common_tags
 
     # Setting up model
-    model = HMM(prior_prob=tags, trans_prob=transition_prob, emiss_prob=emission_prob,
-                state_dict=set(tags.keys()), obs_dict=set(words.keys()), open_class_dict=open_class_tags)
+    model = HMM(prior_prob=tags, trans_prob=transition_prob, emiss_prob=emission_prob, state_dict=set(tags.keys()),
+                obs_dict=set(words.keys()), open_class_dict=open_class_tags, initial_prob=tag_initial)
     model.save_model()
 
 

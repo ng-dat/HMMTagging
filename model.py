@@ -5,14 +5,17 @@ import constant
 
 
 class HMM:
-    def __init__(self, prior_prob=None, trans_prob=None, emiss_prob=None, state_dict=None, obs_dict=None, open_class_dict=None):
+    def __init__(self, prior_prob=None, trans_prob=None, emiss_prob=None, state_dict=None, obs_dict=None,
+                 open_class_dict=None, initial_prob=None):
         """
         :param prior_prob: prior probabilities. Aka P(tag)
         :param trans_prob: transition probabilities. Aka P(tag | other_preious_tags)
         :param emiss_prob: emission probabilities. Aka P(word | tag)
         :param state_dict: dictionary of all states. Aka tags
         :param obs_dict: dictionary of all observations. Aka words
-        :param open_class_dict: dictionary of popular states, used when tagging UNK observations. Popular states mean those with majority of related observations
+        :param open_class_dict: dictionary of popular states, used when tagging UNK observations. Popular states are
+                                those with majority of related observations.
+        :param initial_prob: probabilities that tag is observed at position 0. Aka P(tag | time_step=1)
         """
         if prior_prob and trans_prob and emiss_prob and state_dict and obs_dict:
             self.prior_prob = prior_prob
@@ -27,6 +30,7 @@ class HMM:
             self.state_dict = set()
             self.obs_dict = set()
         self.open_class_dict = set() if not open_class_dict else open_class_dict
+        self.initial_prob = dict() if not initial_prob else initial_prob
 
     def forward(self, obs_seq):
         pass
@@ -45,11 +49,16 @@ class HMM:
         Delta = np.zeros([tag_num, input_len])
 
         for t in range(tag_num):
-            delta[t][0] = self.prior_prob[tags[t]]
+            if len(self.initial_prob) > 0:
+                delta[t][0] = self.initial_prob[tags[t]]
+            else:
+                delta[t][0] = self.prior_prob[tags[t]]
+
             if obs_seq[0] in self.obs_dict:
                 delta[t][0] *= self.emiss_prob[obs_seq[0]][tags[t]]
             elif len(self.open_class_dict) > 0 and tags[t] not in self.open_class_dict:
                 delta[t][0] *= 0.075
+
         for i in range(1, input_len):
             for t in range(tag_num):
                 if obs_seq[i] in self.obs_dict and self.emiss_prob[obs_seq[i]][tags[t]] == 0:
@@ -83,7 +92,8 @@ class HMM:
                            'emiss_prob': self.emiss_prob,
                            'state_dict': list(self.state_dict),
                            'obs_dict': list(self.obs_dict),
-                           'open_class': list(self.open_class_dict)}, indent=1)
+                           'open_class': list(self.open_class_dict),
+                           'init_prob': self.initial_prob}, indent=1)
         with open('hmmmodel.txt', 'w') as model_file:
             model_file.write(data)
             model_file.close()
@@ -92,8 +102,13 @@ class HMM:
         with open('hmmmodel.txt', 'r') as model_file:
             data = json.load(model_file)
             model_file.close()
-        self.prior_prob, self.trans_prob, self.emiss_prob, self.state_dict, self.obs_dict, self.open_class_dict = \
-            data['prior'], data['trans_prob'], data['emiss_prob'], set(data['state_dict']), set(data['obs_dict']), set(data['open_class'])
+        self.prior_prob = data['prior']
+        self.trans_prob = data['trans_prob']
+        self.emiss_prob = data['emiss_prob']
+        self.state_dict = set(data['state_dict'])
+        self.obs_dict = set(data['obs_dict'])
+        self.open_class_dict = set(data['open_class'])
+        self.initial_prob = data['init_prob']
 
     def set_param(self):
         pass
