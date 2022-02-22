@@ -46,10 +46,13 @@ class HMM:
 
         for t in range(tag_num):
             if obs_seq[0] not in self.obs_dict:
-                if len(self.open_class_dict) > 0 and tags[t] in self.open_class_dict:
-                    delta[t][0] = self.prior_prob[tags[t]]
+                if len(self.open_class_dict) > 0:
+                    if tags[t] in self.open_class_dict:
+                        delta[t][0] = self.prior_prob[tags[t]]
+                    else:
+                        delta[t][0] = 0
                 else:
-                    delta[t][0] = 0
+                    delta[t][0] = self.prior_prob[tags[t]]
             else:
                 delta[t][0] = self.prior_prob[tags[t]] * self.emiss_prob[obs_seq[0]][tags[t]]
         for i in range(1, input_len):
@@ -57,7 +60,10 @@ class HMM:
                 if obs_seq[i] in self.obs_dict and self.emiss_prob[obs_seq[i]][tags[t]] == 0:
                     delta[t][i] = 0
                     continue
-                if obs_seq[i] not in self.obs_dict and tags[t] not in self.open_class_dict: # when Tag not in open-class
+                if len(self.open_class_dict) > 0 and \
+                        obs_seq[i] not in self.obs_dict and \
+                        tags[t] not in self.open_class_dict:
+                    # when Tag not in open-class
                     delta[t][i] = 0
                     continue
 
